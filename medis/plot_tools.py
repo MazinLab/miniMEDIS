@@ -254,11 +254,11 @@ def view_spectra(datacube, title=None, show=True, logZ=False, use_axis=True, vli
 
 
 def view_timeseries(img_tseries, cdi, title=None,  logZ=False, vlim =(None,None),
-                    dx=None, subplt_cols=3):
+                    dx=None, subplt_cols=3, box=False):
     """
     view white light images in the timeseries
 
-    :param img_tseries: complex timeseries
+    :param img_tseries: intensity timeseries [n_tsteps, nx,ny]
     :param cdi: struct that contains the CDI params (from CDI.py)
     :param title: string, must be set or will error!
     :param logZ: turn logscale plotting for Z-axis on or off
@@ -266,6 +266,7 @@ def view_timeseries(img_tseries, cdi, title=None,  logZ=False, vlim =(None,None)
     :param vlim: tuple of colorbar axis limits (min,max)
     :param subplt_cols: number of subplots per row
     :param dx: sampling of the image in m. Hardcoded to convert to um
+    :param box: if True, draw box around CDI region
     :return:
     """
     # Recreate CDI phase stream for plot titles
@@ -340,6 +341,15 @@ def view_timeseries(img_tseries, cdi, title=None,  logZ=False, vlim =(None,None)
                                vmin=vlim[0], vmax=vlim[1],
                                cmap="YlGnBu_r")
                 clabel = "Normalized Intensity"
+
+            if box:
+                from matplotlib.patches import Rectangle
+                from medis.CDI import get_fp_mask
+                _, _, _, irng, jrng = get_fp_mask(cdi, thresh=1e-6)
+                rect = Rectangle((jrng[0], irng[0]), jrng[-1]-jrng[0], irng[-1] - irng[0],
+                                 linewidth=1, edgecolor='r', facecolor='none')
+                # Add the patch to the Axes
+                ax.add_patch(rect)
 
         warnings.simplefilter("ignore", category=UserWarning)
         cbar_ax = fig.add_axes([0.86, 0.1, 0.04, 0.8])  # Add axes for colorbar @ position [left,bottom,width,height]

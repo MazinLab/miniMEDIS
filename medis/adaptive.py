@@ -126,12 +126,21 @@ def deformable_mirror(wf, WFS_map, iter, previous_output=None, apodize=False, pl
     dmap = proper.prop_dm(wf, dm_map, dm_xc, dm_yc, act_spacing, FIT=tp.fit_dm)  #
 
     if debug and wf.iw == 0 and wf.ib == 0 and iter==0:
-        dprint(plane_name)
         check_sampling(wf, iter, plane_name+' DM pupil plane', getframeinfo(stack()[0][0]), units='mm')
 
-        quick2D(WFS_map[wf.iw], title=f"WFS map after masking",
-                zlabel='unwrapped phase (rad)',
-                vlim=[-3 * np.pi, 3 * np.pi])
+        # quick2D(WFS_map[wf.iw][sp.grid_size*sp.beam_ratio-10: sp.grid_size*sp.beam_ratio+10,
+        #         sp.grid_size*sp.beam_ratio-10, sp.grid_size*sp.beam_ratio+10]], title=f"WFS map after masking",
+        #         zlabel='unwrapped phase (rad)',
+        #         vlim=[-3 * np.pi, 3 * np.pi])]
+
+        fig, ax = plt.subplots(1, 1)
+        cax = ax.imshow(WFS_map[wf.iw], interpolation='none', origin='lower')
+        ax.set_xlim(sp.grid_size/2 - np.int(dm_map.shape[0]/2) -2, sp.grid_size/2 + np.int(dm_map.shape[0]/2) + 2)
+        ax.set_ylim(sp.grid_size/2 - np.int(dm_map.shape[0]/2) -2, sp.grid_size/2 + np.int(dm_map.shape[0]/2) + 2)
+        plt.title(f'{plane_name} WFS map after masking')
+        cb = plt.colorbar(cax)
+        cb.set_label('unwrapped phase (rad)')
+
 
         fig, ax = plt.subplots(1,1)
         cax = ax.imshow(dm_map*1e9, interpolation='none', origin='lower')

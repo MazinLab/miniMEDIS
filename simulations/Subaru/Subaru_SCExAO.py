@@ -236,14 +236,14 @@ def Subaru_SCExAO(empty_lamda, grid_size, PASSVALUE):
     # Check Sampling in focal plane
     # wfo.focal_plane fft-shifts wfo from Fourier Space (origin==lower left corner) to object space (origin==center)
     cpx_planes, sampling = wfo.focal_plane()
-
     if sp.verbose:
         wfo.loop_collection(opx.check_sampling, PASSVALUE['iter'], "focal plane",
                             getframeinfo(stack()[0][0]), units='nm')
-        # opx.check_sampling(PASSVALUE['iter'], wfo, "focal plane", getframeinfo(stack()[0][0]), units='arcsec')
+    wfo.loop_collection(opx.check_sampling, PASSVALUE['iter'], "focal plane",
+                        getframeinfo(stack()[0][0]), units='arcsec')
 
-    if sp.verbose:
-        print(f"Finished datacube at timestep = {PASSVALUE['iter']}")
+    # if sp.verbose:
+    print(f"Finished datacube at timestep = {PASSVALUE['iter']}")
 
     return cpx_planes, sampling
 

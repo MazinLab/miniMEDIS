@@ -294,6 +294,10 @@ def view_timeseries(img_tseries, cdi, title=None,  logZ=False, vlim =(None,None)
         else:
             # X,Y lables
             if dx is not None:
+                wvls = np.linspace(ap.wvl_range[0], ap.wvl_range[1], ap.n_wvl_init)
+                cent = np.int(np.floor(wvls.shape[0]/2))
+                cw = wvls[cent]   #center wavelength
+                lmda_D_scale= cw/tp.entrance_d
                 # Converting Sampling Units to Readable numbers
                 if dx < 1e-6:
                     dx *= 1e6  # [convert to um]
@@ -309,9 +313,11 @@ def view_timeseries(img_tseries, cdi, title=None,  logZ=False, vlim =(None,None)
 
                 # Setting Tick Spacing
                 tic_spacing = np.linspace(0, img_tseries[t].shape[0], 5)  # 5 (# of ticks) is just set by hand, arbitrarily chosen
-                tic_lables = np.round(
-                    np.linspace(-dx * sp.maskd_size / 2, dx * sp.maskd_size / 2, 5)).astype(
-                    int)  # nsteps must be same as tic_spacing
+                tic_lables = np.round(np.linspace(-dx * sp.maskd_size / 2 * lmda_D_scale,
+                     dx * sp.maskd_size / 2 * lmda_D_scale, 5)).astype(int)  # nsteps must be same as tic_spacing
+                # tic_lables = np.round(
+                #     np.linspace(-dx * sp.maskd_size / 2, dx * sp.maskd_size / 2, 5)).astype(
+                #     int)  # nsteps must be same as tic_spacing
                 tic_spacing[0] = tic_spacing[0] + 1  # hack for edge effects
                 tic_spacing[-1] = tic_spacing[-1] - 1  # hack for edge effects
                 plt.xticks(tic_spacing, tic_lables, fontsize=6)

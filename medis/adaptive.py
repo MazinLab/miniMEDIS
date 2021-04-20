@@ -135,8 +135,10 @@ def deformable_mirror(wf, WFS_map, iter, previous_output=None, apodize=False, pl
 
         fig, ax = plt.subplots(1, 1)
         cax = ax.imshow(WFS_map[wf.iw], interpolation='none', origin='lower')
-        ax.set_xlim(sp.grid_size/2 - np.int(dm_map.shape[0]/2) -2, sp.grid_size/2 + np.int(dm_map.shape[0]/2) + 2)
-        ax.set_ylim(sp.grid_size/2 - np.int(dm_map.shape[0]/2) -2, sp.grid_size/2 + np.int(dm_map.shape[0]/2) + 2)
+        ax.set_xlim(sp.grid_size/2 - np.int(sp.grid_size*sp.beam_ratio/2) - 2,
+                    sp.grid_size/2 + np.int(sp.grid_size*sp.beam_ratio/2) + 2)
+        ax.set_ylim(sp.grid_size/2 - np.int(sp.grid_size*sp.beam_ratio/2) - 2,
+                    sp.grid_size/2 + np.int(sp.grid_size*sp.beam_ratio/2) + 2)
         plt.title(f'{plane_name} WFS map after masking')
         cb = plt.colorbar(cax)
         cb.set_label('unwrapped phase (rad)')

@@ -569,22 +569,31 @@ def check_sampling(wf, tstep, location, line_info, units=None):
         if wf.iw == 0:
             print(f"\nFrom {line_info.filename}:{line_info.lineno}\n Sampling at {location}")
 
-        check_sampling = proper.prop_get_sampling(wf)
+        smpling = proper.prop_get_sampling(wf)
         if units == 'mm':
-            print(f"sampling at wavelength={wf.lamda * 1e9:.0f}nm is {check_sampling*1e3:.4f} mm")
+            print(f"sampling at wavelength={wf.lamda * 1e9:.0f}nm is {smpling*1e3:.4f} mm")
         elif units == 'um':
-            print(f"sampling at wavelength={wf.lamda * 1e9:.0f}nm is {check_sampling*1e6:.1f} um")
+            print(f"sampling at wavelength={wf.lamda * 1e9:.0f}nm is {smpling*1e6:.1f} um")
         elif units == 'nm':
-            print(f"sampling at wavelength={wf.lamda * 1e9:.0f}nm is {check_sampling*1e9:.1f} nm")
+            print(f"sampling at wavelength={wf.lamda * 1e9:.0f}nm is {smpling*1e9:.1f} nm")
         elif units == 'arcsec':
-            check_sampling = proper.prop_get_sampling_arcsec(wf)
-            print(f"sampling at wavelength={wf.lamda * 1e9:.0f}nm is {check_sampling*1e3:.2f} mas")
+            smpling = proper.prop_get_sampling_arcsec(wf)
+            print(f"sampling at wavelength={wf.lamda * 1e9:.0f}nm is {smpling*1e3:.4f} mas\n"
+                  f"full FOV is {smpling * sp.grid_size:.2f} arcsec")
         elif units == 'rad':
-            check_sampling = proper.prop_get_sampling_radians(wf)
-            print(f"sampling at wavelength={wf.lamda * 1e9:.0f}nm is {check_sampling:.3f} rad")
+            smpling = proper.prop_get_sampling_radians(wf)
+            print(f"sampling at wavelength={wf.lamda * 1e9:.0f}nm is {smpling:.3f} rad")
         else:
-            print(f"sampling at wavelength={wf.lamda * 1e9:.0f}nm is {check_sampling} m")
+            print(f"sampling at wavelength={wf.lamda * 1e9:.0f}nm is {smpling} m")
 
+
+def convert_sampling(fp_samp):
+    """
+    converts focal plane sampling from m to FOV in arcsec and lambda/d
+
+    :param fp_samp: sampling of detector (last) plane returned by run_medis, eg fp_samp = observation['sampling'][-1]
+    :return: FOV, arcsec
+    """
 
 """
 Depricated by use of hardmask pupil. Removing it as it is confusing with reference in new routine in adaptive.py 

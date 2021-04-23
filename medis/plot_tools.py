@@ -295,35 +295,6 @@ def view_timeseries(img_tseries, cdi, title=None,  logZ=False, vlim =(None,None)
             ax.axis('off')  # hides axis
             pass
         else:
-            # X,Y lables
-            if dx is not None:
-                # Converting Sampling Units to Readable numbers
-                if dx < 1e-6:
-                    dx *= 1e6  # [convert to um]
-                    axlabel = 'um'
-                elif dx < 1e-3:
-                    dx *= 1e3  # [convert to mm]
-                    axlabel = 'mm'
-                elif 1e-2 > dx > 1e-3:
-                    dx *= 1e2  # [convert to cm]
-                    axlabel = 'cm'
-                else:
-                    axlabel = 'm'
-
-                # Setting Tick Spacing
-                tic_spacing = np.linspace(0, img_tseries[t].shape[0], 5)  # 5 (# of ticks) is just set by hand, arbitrarily chosen
-                tic_lables = np.round(np.linspace(-dx * sp.maskd_size / 2,
-                     dx * sp.maskd_size / 2, 5)).astype(int)  # nsteps must be same as tic_spacing
-                # tic_lables = np.round(
-                #     np.linspace(-dx * sp.maskd_size / 2, dx * sp.maskd_size / 2, 5)).astype(
-                #     int)  # nsteps must be same as tic_spacing
-                tic_spacing[0] = tic_spacing[0] + 1  # hack for edge effects
-                tic_spacing[-1] = tic_spacing[-1] - 1  # hack for edge effects
-                plt.xticks(tic_spacing, tic_lables, fontsize=6)
-                plt.yticks(tic_spacing, tic_lables, fontsize=6)
-                # plt.xlabel('[um]', fontsize=8)
-                plt.ylabel(axlabel, fontsize=8)
-
             # Axis (Subplot) title
             if cdi.use_cdi and not np.isnan(phases[t]):
                 ax.set_title(f"probe  " r'$\theta$' + f"={phases[t] / np.pi:.2f}" + r'$\pi$')
@@ -346,6 +317,14 @@ def view_timeseries(img_tseries, cdi, title=None,  logZ=False, vlim =(None,None)
                                vmin=vlim[0], vmax=vlim[1],
                                cmap="YlGnBu_r")
                 clabel = "Normalized Intensity"
+
+            # XY axis Labels
+            tic_spacing, tic_labels, xylabel = scale_lD(dx, tp.fn_fp, sp.maskd_size)
+            ax.set_xticks(tic_spacing)
+            ax.set_xticklabels(tic_labels)
+            ax.set_yticks(tic_spacing)
+            ax.set_yticklabels(tic_labels)
+            ax.set_xlabel(xylabel)
 
             if box:
                 from matplotlib.patches import Rectangle

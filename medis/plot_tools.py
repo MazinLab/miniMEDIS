@@ -56,14 +56,17 @@ def quick2D(image, dx=None, title=None, logZ=False, vlim=(None,None),
 
     # X,Y lables
     if dx is not None:
-        scale = np.round(
-            np.linspace(-dx * sp.maskd_size / 2, dx * sp.maskd_size / 2, (sp.maskd_size + 1) / 50) * 1e6).astype(int)
-        tic_spacing = np.linspace(0, sp.maskd_size, sp.maskd_size/50)
-        tic_spacing[0] = tic_spacing[0] + 1  # hack for edge effects
-        tic_spacing[-1] = tic_spacing[-1] -1  # hack for edge effects
-        plt.xticks(tic_spacing, scale)
-        plt.yticks(tic_spacing, scale)
-        plt.xlabel('[um]')
+    #     if dx < 1e-4:
+    #         dx *= 1e6
+    #     scale = np.round(
+    #         np.linspace(-dx * sp.maskd_size / 2, dx * sp.maskd_size / 2, 5)).astype(int)
+    #     tic_spacing = np.linspace(0, sp.maskd_size, 5)
+    #     tic_spacing[0] = tic_spacing[0] + 1  # hack for edge effects
+    #     tic_spacing[-1] = tic_spacing[-1] -1  # hack for edge effects
+        tic_spacing, tic_labels, axlabel = scale_lD(dx, tp.fn_fp, sp.maskd_size)
+        plt.xticks(tic_spacing, tic_labels)
+        plt.yticks(tic_spacing, tic_labels)
+        plt.xlabel(axlabel)
 
     # Setting z-axis by mean
     # if vlim == (None, None):
@@ -294,10 +297,6 @@ def view_timeseries(img_tseries, cdi, title=None,  logZ=False, vlim =(None,None)
         else:
             # X,Y lables
             if dx is not None:
-                wvls = np.linspace(ap.wvl_range[0], ap.wvl_range[1], ap.n_wvl_init)
-                cent = np.int(np.floor(wvls.shape[0]/2))
-                cw = wvls[cent]   #center wavelength
-                lmda_D_scale= cw/tp.entrance_d
                 # Converting Sampling Units to Readable numbers
                 if dx < 1e-6:
                     dx *= 1e6  # [convert to um]
@@ -313,8 +312,8 @@ def view_timeseries(img_tseries, cdi, title=None,  logZ=False, vlim =(None,None)
 
                 # Setting Tick Spacing
                 tic_spacing = np.linspace(0, img_tseries[t].shape[0], 5)  # 5 (# of ticks) is just set by hand, arbitrarily chosen
-                tic_lables = np.round(np.linspace(-dx * sp.maskd_size / 2 * lmda_D_scale,
-                     dx * sp.maskd_size / 2 * lmda_D_scale, 5)).astype(int)  # nsteps must be same as tic_spacing
+                tic_lables = np.round(np.linspace(-dx * sp.maskd_size / 2,
+                     dx * sp.maskd_size / 2, 5)).astype(int)  # nsteps must be same as tic_spacing
                 # tic_lables = np.round(
                 #     np.linspace(-dx * sp.maskd_size / 2, dx * sp.maskd_size / 2, 5)).astype(
                 #     int)  # nsteps must be same as tic_spacing
@@ -504,7 +503,6 @@ def plot_planes(cpx_seq, title=None, logZ=[False], use_axis=True, vlim=[None, No
     # plt.show(block=True)
 
 
-##
 def add_colorbar(im, aspect=20, pad_fraction=0.5, **kwargs):
     """Add a vertical color bar to an image plot."""
     divider = axes_grid1.make_axes_locatable(im.axes)
@@ -514,3 +512,32 @@ def add_colorbar(im, aspect=20, pad_fraction=0.5, **kwargs):
     cax = divider.append_axes("right", size=width, pad=pad)
     plt.sca(current_ax)
     return im.axes.figure.colorbar(im, cax=cax, **kwargs)
+
+
+def scale_lD(samp, fn, shp):
+    """
+    scales the focal plane into lambda/D units. Can use proper.prop_get_fratio to get the f_ratio that proper calculates
+    at the focal plane.
+
+    :param samp: sampling of the wavefront in m/pix
+    :param fn: f# (focal ratio) of the beam in the focal plane
+    :return:
+    """
+    fl = fn * tp.entrance_d
+    rad_scale = samp / fl
+
+    wvls = np.linspace(ap.wvl_range[0], ap.wvl_range[1], ap.n_wvl_init)
+    cent = np.int(np.floor(ap.n_wvl_final / 2))
+    cw = wvls[cent]  # center wavelength
+    res = cw / tp.entrance_d
+
+    tic_spacing = np.linspace(0, shp, 5)  # 5 (number of ticks) is set by hand, arbitrarily chosen
+    tic_labels = np.round(np.linspace(-rad_scale * sp.maskd_size / 2 , rad_scale * sp.maskd_size / 2 , 5)/res)  # nsteps must be same as tic_spacing
+    tic_spacing[0] = tic_spacing[0] + 1  # hack for edge effects
+    tic_spacing[-1] = tic_spacing[-1] - 1  # hack for edge effects
+
+    axlabel = (r'$\lambda$' + f'/D')
+
+    return tic_spacing, tic_labels, axlabel
+
+

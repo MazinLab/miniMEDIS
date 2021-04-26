@@ -359,7 +359,7 @@ def cpx_to_intensity(data_in):
     return np.abs(data_in)**2
 
 
-def extract_center(wf, new_size=sp.maskd_size):
+def extract_center(wf, new_size=None):
     """
     extracts [new_size, new_size] from [sp.grid_size, sp.grid_size] data
     fp~focal plane
@@ -368,8 +368,9 @@ def extract_center(wf, new_size=sp.maskd_size):
     :param wf: [sp.grid_size, sp.grid_size] array
     :returns: array with size [new_size, new_size]
     """
+    if not new_size:
+        new_size = sp.maskd_size
     EXTRACT = np.int(np.ceil(new_size))
-    # dprint(f'newsize={new_size}, dtype={new_size.dtype}')
     smaller_wf = np.zeros((EXTRACT, EXTRACT))
     nx,ny = wf.shape
     smaller_wf = wf[int(ny/2-EXTRACT/2):int(ny/2+EXTRACT/2),

@@ -96,9 +96,9 @@ def deformable_mirror(wf, WFS_map, iter, previous_output=None, apodize=False, pl
     #########
     if tp.satelite_speck['apply'] and plane_name is not 'woofer':
         waffle = make_speckle_kxy(tp.satelite_speck['xloc'], tp.satelite_speck['yloc'],
-                                  tp.satelite_speck['amp'], tp.satelite_speck['phase'])
+                                  tp.satelite_speck['amp'], tp.satelite_speck['phase'], nact)
         waffle += make_speckle_kxy(tp.satelite_speck['xloc'], -tp.satelite_speck['yloc'],
-                                   tp.satelite_speck['amp'], tp.satelite_speck['phase'])
+                                   tp.satelite_speck['amp'], tp.satelite_speck['phase'], nact)
         dm_map += waffle
 
     #######
@@ -363,14 +363,20 @@ def hardmask_pupil(wf):
     #     plt.show()
 
 
-def make_speckle_kxy(kx, ky, amp, dm_phase):
+def make_speckle_kxy(kx, ky, amp, dm_phase, Nact):
     """given an kx and ky wavevector,
-    generates a NxN flatmap that has
-    a speckle at that position"""
-    N = tp.ao_act
+    generates a Nact x Nact DM actuator height map to create
+    a speckle at that position
+
+    :param kx, ky: spatial frequency of the speckle in the pupil plane [1/rad]
+    :param amp: amplitude of the speckle [nm]
+    :param dm_phase: phase of the speckle [rad]
+    :param nact: number of actuators across the DM
+    :returns: Nact x Nact map of dm actuator  heights to create 2 symmetrical speckles in the focal plane
+    """
     dmx, dmy   = np.meshgrid(
-                    np.linspace(-0.5, 0.5, N),
-                    np.linspace(-0.5, 0.5, N))
+                    np.linspace(-0.5, 0.5, Nact),
+                    np.linspace(-0.5, 0.5, Nact))
 
     xm=dmx*kx*2.0*np.pi
     ym=dmy*ky*2.0*np.pi

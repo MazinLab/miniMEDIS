@@ -568,7 +568,8 @@ def check_sampling(wf, tstep, location, line_info, units=None):
     """
     if tstep == 0 and wf.ib == 0:
         if wf.iw == 0:
-            print(f"\nFrom {line_info.filename}:{line_info.lineno}\n Sampling at {location}")
+            print(f"\nFrom {line_info.filename}:{line_info.lineno}\n"
+                  f"Sampling at {location} with grid size {sp.grid_size}x{sp.grid_size} and beam ratio {sp.beam_ratio}")
 
         smpling = proper.prop_get_sampling(wf)
         if units == 'mm':
@@ -580,10 +581,10 @@ def check_sampling(wf, tstep, location, line_info, units=None):
         elif units == 'arcsec':
             smpling = proper.prop_get_sampling_arcsec(wf)
             print(f"sampling at wavelength={wf.lamda * 1e9:.0f}nm is {smpling*1e3:.4f} mas\n"
-                  f"full FOV is {smpling * sp.grid_size:.2f} arcsec")
+                  f"\tfull FOV is {smpling * sp.grid_size:.2f} arcsec")
         elif units == 'rad':
             smpling = proper.prop_get_sampling_radians(wf)
-            print(f"sampling at wavelength={wf.lamda * 1e9:.0f}nm is {smpling:.3f} rad")
+            print(f"sampling at wavelength={wf.lamda * 1e9:.0f}nm is {smpling*1e6:.6f} urad")
         else:
             print(f"sampling at wavelength={wf.lamda * 1e9:.0f}nm is {smpling} m")
 

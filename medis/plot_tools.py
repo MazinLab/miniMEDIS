@@ -63,7 +63,7 @@ def quick2D(image, dx=None, title=None, logZ=False, vlim=(None,None),
     #     tic_spacing = np.linspace(0, sp.maskd_size, 5)
     #     tic_spacing[0] = tic_spacing[0] + 1  # hack for edge effects
     #     tic_spacing[-1] = tic_spacing[-1] -1  # hack for edge effects
-        tic_spacing, tic_labels, axlabel = scale_lD(dx, tp.fn_fp, sp.maskd_size)
+        tic_spacing, tic_labels, axlabel = scale_lD(dx, tp.fn_fp)
         plt.xticks(tic_spacing, tic_labels)
         plt.yticks(tic_spacing, tic_labels)
         plt.xlabel(axlabel)
@@ -382,6 +382,7 @@ def plot_planes(cpx_seq, title=None, logZ=[False], use_axis=True, vlim=[None, No
     if len(vlim) == 2:
         vlim = [vlim,]*len(sp.save_list)
 
+    # Select first or last plane to plot (useful if CDI probes are being applied)
     if not first:
         f = -1
     else:
@@ -401,7 +402,7 @@ def plot_planes(cpx_seq, title=None, logZ=[False], use_axis=True, vlim=[None, No
         # Distinguish plotting z-axis in phase units or intensity units
         if plot_plane == "atmosphere" or plot_plane == "entrance_pupil":
             plane = np.sum(np.angle(plane[f]), axis=(0,1))
-            plane = opx.extract_center(plane, new_size=sp.grid_size*sp.beam_ratio+10)
+            plane = opx.extract_center(plane, new_size=sp.grid_size*sp.beam_ratio+6)
             logZ[p] = False
             vlim[p] = [None, None]
             phs = " phase"
@@ -409,7 +410,7 @@ def plot_planes(cpx_seq, title=None, logZ=[False], use_axis=True, vlim=[None, No
             # only show the star phase map since phase at other bodies just offsets to shift focal plane position
             plane = np.sum(np.angle(plane[f]), axis=(0))  # only sum over object
             plane = plane[0]  # plot the shortest wavelength
-            plane = opx.extract_center(plane, new_size=sp.grid_size*sp.beam_ratio+10)  # zoom in on DM
+            plane = opx.extract_center(plane, new_size=sp.grid_size*sp.beam_ratio+6)  # zoom in on DM
             logZ[p] = False
             vlim[p] = [-np.pi, np.pi]
             phs = " phase"
@@ -423,28 +424,29 @@ def plot_planes(cpx_seq, title=None, logZ=[False], use_axis=True, vlim=[None, No
         # # plane = opx.cpx_to_intensity(plane[-1])
         # plane = opx.extract_center(np.angle(plane[0,1,1]))  # wavelengths, objects
 
-        # Converting Sampling Units to Readable numbers
-        if dx[p,0] < 1e-5:
-            dx[p,:] *= 1e6  # [convert to um]
-            axlabel = 'um'
-        elif dx[p,0] < 1e-3:
-            dx[p,:] *= 1e3  # [convert to mm]
-            axlabel = 'mm'
-        elif 1e-2 > dx[p,0] > 1e-3:
-            dx[p,:] *= 1e2  # [convert to cm]
-            axlabel = 'cm'
-        else:
-            axlabel = 'm'
-
         # X,Y lables
         if dx is not None:
-            tic_spacing = np.linspace(0, plane.shape[0], 5)  # 5 (# of ticks) is just set by hand, arbitrarily chosen
-            tic_lables = np.round(
-                np.linspace(-dx[p,0] * plane.shape[0] / 2, dx[p,0] * plane.shape[0] / 2, 5)).astype(int)  # nsteps must be same as tic_spacing
+            # Converting Sampling Units to Readable numbers
+            if dx[p, 0] < 1e-5:
+                # dx[p, :] *= 1e6  # [convert to um]
+                # axlabel = 'um'
+                tic_spacing, tic_labels, axlabel = scale_lD(dx[p,:], tp.fn_fp)  # Assumes that this is the focal plane!
+            else:
+                if dx[p, 0] < 1e-3:
+                    dx[p, :] *= 1e3  # [convert to mm]
+                    axlabel = 'mm'
+                elif 1e-2 > dx[p, 0] > 1e-3:
+                    dx[p, :] *= 1e2  # [convert to cm]
+                    axlabel = 'cm'
+                else:
+                    axlabel = 'm'
+                tic_spacing = np.linspace(0, plane.shape[0], 5)  # 5 (# of ticks) is just set by hand, arbitrarily chosen
+                tic_labels = np.round(
+                    np.linspace(-dx[p,0] * plane.shape[0] / 2, dx[p,0] * plane.shape[0] / 2, 5)).astype(int)  # nsteps must be same as tic_spacing
             tic_spacing[0] = tic_spacing[0] + 1  # hack for edge effects
             tic_spacing[-1] = tic_spacing[-1] - 1  # hack for edge effects
-            plt.xticks(tic_spacing, tic_lables, fontsize=6)
-            plt.yticks(tic_spacing, tic_lables, fontsize=6)
+            plt.xticks(tic_spacing, tic_labels, fontsize=6)
+            plt.yticks(tic_spacing, tic_labels, fontsize=6)
             plt.ylabel(axlabel, fontsize=8)
 
         # Z-axis scale
@@ -493,24 +495,32 @@ def add_colorbar(im, aspect=20, pad_fraction=0.5, **kwargs):
     return im.axes.figure.colorbar(im, cax=cax, **kwargs)
 
 
-def scale_lD(samp, fn, shp):
+def scale_lD(samp, fn):
     """
     scales the focal plane into lambda/D units. Can use proper.prop_get_fratio to get the f_ratio that proper calculates
-    at the focal plane.
+    at the focal plane. First convert the sampling in m/pix to rad/pix, then scale by the center wavelength lambda/D
+    [rad].
 
     :param samp: sampling of the wavefront in m/pix
     :param fn: f# (focal ratio) of the beam in the focal plane
     :return:
     """
+    wvls = np.linspace(ap.wvl_range[0], ap.wvl_range[1], ap.n_wvl_init)
+    cent = np.int(np.floor(ap.n_wvl_final / 2))
+
+    if not samp.shape:
+        pass                # sampling is a single value
+    else:
+        samp = samp[cent]  # sampling at the center wavelength
+
+    # Convert to Angular Sampling Units via platescale
     fl = fn * tp.entrance_d
     rad_scale = samp / fl
 
-    wvls = np.linspace(ap.wvl_range[0], ap.wvl_range[1], ap.n_wvl_init)
-    cent = np.int(np.floor(ap.n_wvl_final / 2))
     cw = wvls[cent]  # center wavelength
     res = cw / tp.entrance_d
 
-    tic_spacing = np.linspace(0, shp, 5)  # 5 (number of ticks) is set by hand, arbitrarily chosen
+    tic_spacing = np.linspace(0, sp.maskd_size, 5)  # 5 (number of ticks) is set by hand, arbitrarily chosen
     tic_labels = np.round(np.linspace(-rad_scale * sp.maskd_size / 2 , rad_scale * sp.maskd_size / 2 , 5)/res)  # nsteps must be same as tic_spacing
     tic_spacing[0] = tic_spacing[0] + 1  # hack for edge effects
     tic_spacing[-1] = tic_spacing[-1] - 1  # hack for edge effects
@@ -518,5 +528,4 @@ def scale_lD(samp, fn, shp):
     axlabel = (r'$\lambda$' + f'/D')
 
     return tic_spacing, tic_labels, axlabel
-
 

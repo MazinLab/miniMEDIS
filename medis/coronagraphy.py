@@ -139,6 +139,9 @@ def coronagraph(wf, occulter_mode=None):
 
         proper.prop_propagate(wf, tp.fl_cg_lens)  # propagate to reimaging lens from lyot stop
         opx.prop_pass_lens(wf, tp.fl_cg_lens, tp.fl_cg_lens)  # go to the next image plane
+        # Test using \TO_PLANE keyword
+        # proper.prop_lens(wf,  tp.fl_cg_lens)
+        # proper.prop_propagate(wf,  tp.fl_cg_lens, TO_PLANE=True)
 
 
 def apodization(wf):

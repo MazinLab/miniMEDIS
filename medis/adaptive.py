@@ -91,10 +91,10 @@ def deformable_mirror(wf, WFS_map, iter, previous_output=None, apodize=False, pl
     else:
         dm_map = quick_ao(wf, nact, WFS_map[wf.iw])
 
-    #########
-    # Waffle
-    #########
-    if tp.satelite_speck['apply'] and plane_name is not 'woofer':
+    #############
+    # Astrogrid
+    #############
+    if tp.satelite_speck['apply'] and plane_name is not 'woofer' and wf.ib == 0:
         waffle = make_speckle_kxy(tp.satelite_speck['xloc'], tp.satelite_speck['yloc'],
                                   tp.satelite_speck['amp'], tp.satelite_speck['phase'], nact)
         waffle += make_speckle_kxy(tp.satelite_speck['xloc'], -tp.satelite_speck['yloc'],
@@ -110,6 +110,8 @@ def deformable_mirror(wf, WFS_map, iter, previous_output=None, apodize=False, pl
             # dprint(f"Applying CDI probe, lambda = {wfo.wsamples[iw]*1e9:.2f} nm")
             cdi.save_tseries(iter, datetime.datetime.now())
             probe = config_probe(theta, nact, iw=wf.iw, ib=wf.ib, tstep=iter)
+            # surf_height = proper.prop_get_wavelength(wf) / (4 * np.pi)  # [m/rad]
+            # probe *= surf_height
             dm_map = dm_map + probe  # Add Probe to DM map
 
     #########################
@@ -128,31 +130,14 @@ def deformable_mirror(wf, WFS_map, iter, previous_output=None, apodize=False, pl
     if debug and wf.iw == 0 and wf.ib == 0 and iter==0:
         check_sampling(wf, iter, plane_name+' DM pupil plane', getframeinfo(stack()[0][0]), units='mm')
 
-        # quick2D(WFS_map[wf.iw][sp.grid_size*sp.beam_ratio-10: sp.grid_size*sp.beam_ratio+10,
-        #         sp.grid_size*sp.beam_ratio-10, sp.grid_size*sp.beam_ratio+10]], title=f"WFS map after masking",
-        #         zlabel='unwrapped phase (rad)',
-        #         vlim=[-3 * np.pi, 3 * np.pi])]
-
-        fig, ax = plt.subplots(1, 1)
-        cax = ax.imshow(WFS_map[wf.iw], interpolation='none', origin='lower')
-        ax.set_xlim(sp.grid_size/2 - np.int(sp.grid_size*sp.beam_ratio/2) - 2,
-                    sp.grid_size/2 + np.int(sp.grid_size*sp.beam_ratio/2) + 2)
-        ax.set_ylim(sp.grid_size/2 - np.int(sp.grid_size*sp.beam_ratio/2) - 2,
-                    sp.grid_size/2 + np.int(sp.grid_size*sp.beam_ratio/2) + 2)
-        plt.title(f'{plane_name} WFS map after masking')
-        cb = plt.colorbar(cax)
-        cb.set_label('unwrapped phase (rad)')
-
-
         fig, ax = plt.subplots(1,1)
         cax = ax.imshow(dm_map*1e9, interpolation='none', origin='lower')
         plt.title(f'{plane_name} dm_map (actuator coordinates)')
         cb = plt.colorbar(cax)
         cb.set_label('nm')
 
-        plt.show()
-
         post_ao = unwrap_phase(proper.prop_get_phase(wf)) * wf.lamda / (2 * np.pi)
+
         # quick2D(pre_ao_dist*1e9, title='unwrapped wavefront before DM', zlabel='nm', show=False)  # , vlim=(-0.5e-7,0.5e-7))
         # quick2D(np.abs(pre_ao_amp)**2, title='Pre-AO Intensity', show=False)#, vlim=(-0.5e-7,0.5e-7))
         # quick2D(dmap, title='the phase map prop_dm is applying', zlabel='distance (m)', show=False)#, vlim=(-0.5e-7,0.5e-7))
@@ -253,6 +238,17 @@ def quick_ao(wf, nact, WFS_map):
     surf_height = proper.prop_get_wavelength(wf) / (4 * np.pi)  # [m/rad]
     ao_map = -ao_map * surf_height  # Converts DM map to units of [m] of actuator heights
 
+    if sp.verbose and wf.iw == 0 and wf.ib == 0 and iter == 0:
+        fig, ax = plt.subplots(1, 1)
+        cax = ax.imshow(WFS_map[wf.iw], interpolation='none', origin='lower')
+        ax.set_xlim(sp.grid_size / 2 - np.int(sp.grid_size * sp.beam_ratio / 2) - 2,
+                    sp.grid_size / 2 + np.int(sp.grid_size * sp.beam_ratio / 2) + 2)
+        ax.set_ylim(sp.grid_size / 2 - np.int(sp.grid_size * sp.beam_ratio / 2) - 2,
+                    sp.grid_size / 2 + np.int(sp.grid_size * sp.beam_ratio / 2) + 2)
+        plt.title(f'WFS map after masking')
+        cb = plt.colorbar(cax)
+        cb.set_label('unwrapped phase (rad)')
+
     return ao_map
 
 
@@ -307,12 +303,6 @@ def open_loop_wfs(wfo, plane_name='wfs'):
         phasemap = proper.prop_get_phase(star_wf[iw])
         WFS_map[iw] = unwrap_phase(phasemap, wrap_around=[False, False])
         WFS_map[iw][phasemap==0] = 0 #TODO is this still necessary?
-
-        # if sp.verbose:
-        #     quick2D(WFS_map[iw], title=f"WFS map after masking, lambda={wfo.wsamples[iw]*1e9:.2f}",
-        #             zlabel='unwrapped phase (rad)',
-        #             vlim=[-3*np.pi, 3*np.pi])
-        #
 
     if 'WFS' in sp.save_list or sp.closed_loop:
         wfo.save_plane(location='WFS')

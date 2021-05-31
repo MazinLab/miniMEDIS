@@ -76,8 +76,6 @@ tp.dist_oap2_focus = 1.261
 
 # ------------------------------
 # SCExAO
-# These params aren't actually working, so just doing very basic, 4F optical systems until further notice
-
 tp.d_tweeter = 0.051  # diameter of optics in SCExAO train are 2 inches=0.051 m
 tp.act_tweeter = 50  # SCExAO actuators are 50x50=2500 actuators
 tp.fl_SxOAPG = 0.255  # m focal length of Genera SCExAO lens (OAP1,3,4,5)
@@ -85,6 +83,7 @@ tp.fl_SxOAP2 = 0.519  # m focal length of SCExAO OAP 2
 tp.d_SxOAPG = 0.051  # diameter of SCExAO OAP's
 # tp.dist_cg_sl1 = tp.fl_SxOAPG + .000001  # m distance between AO188 focus and scexao lens1
 
+# These distances aren't actually working, so just doing very basic, 4F optical systems until further notice
 tp.dist_SxOAP1_scexao = 0.1345  # m
 tp.dist_scexao_sl2 = 0.2511 - tp.dist_SxOAP1_scexao  # m
 tp.dist_sl2_focus = 0.1261  # m
@@ -122,11 +121,11 @@ tp.lens_params = [{'aber_vals': [7.2e-17, 0.8, 3.1],
 # ------------------------------
 # Coronagraph
 tp.cg_type = 'Gaussian'
-tp.cg_size = 2  # physical size or lambda/D size
+tp.cg_size = 4.2  # physical size or lambda/D size
 tp.cg_size_units = "l/D"  # "m" or "l/D"
 # tp.fl_cg_lens = 0.1021  # m
 tp.fl_cg_lens = tp.fl_SxOAPG
-tp.lyot_size = 0.9  # units are in fraction of surface blocked
+tp.lyot_size = 0.95  # units are in fraction of surface blocked
 
 #################################################################################################
 #################################################################################################
@@ -212,13 +211,13 @@ def Subaru_SCExAO(empty_lamda, grid_size, PASSVALUE):
     #
     # AO System
     if tp.use_ao:
-        # WFS_map = ao.open_loop_wfs(wfo)
+        WFS_map = ao.open_loop_wfs(wfo)
         wfo.loop_collection(ao.deformable_mirror, WFS_map, PASSVALUE['iter'], apodize=True,
                             plane_name='tweeter', debug=sp.verbose)
     # ------------------------------------------------
     wfo.loop_collection(proper.prop_propagate, tp.fl_SxOAPG)  # from tweeter-DM to OAP2
 
-    # SXExAO Reimaging 2
+    # SCExAO Reimaging 2
     wfo.loop_collection(aber.add_aber, step=PASSVALUE['iter'], lens_name='SxOAP2')  # high order NCPA
     wfo.loop_collection(aber.add_zern_ab, tp.zernike_orders, aber.randomize_zern_values(tp.zernike_orders)/2)  # low order NCPA
     wfo.loop_collection(opx.prop_pass_lens, tp.fl_SxOAP2, tp.fl_SxOAP2, plane_name='post-DM-focus')  #tp.dist_sl2_focus
@@ -236,14 +235,19 @@ def Subaru_SCExAO(empty_lamda, grid_size, PASSVALUE):
     # Check Sampling in focal plane
     # wfo.focal_plane fft-shifts wfo from Fourier Space (origin==lower left corner) to object space (origin==center)
     cpx_planes, sampling = wfo.focal_plane()
-    if sp.verbose:
+    if sp.verbose and PASSVALUE['iter'] == 0:
         wfo.loop_collection(opx.check_sampling, PASSVALUE['iter'], "focal plane",
                             getframeinfo(stack()[0][0]), units='nm')
+        print(f'f ratio at the focal plane = {proper.prop_get_fratio(wfo.wf_collection[0, 0])}')
+        print(f'f ratio at the focal plane = {proper.prop_get_fratio(wfo.wf_collection[1, 0])}')
+        print(f'f ratio at the focal plane = {proper.prop_get_fratio(wfo.wf_collection[2, 0])}')
     wfo.loop_collection(opx.check_sampling, PASSVALUE['iter'], "focal plane",
                         getframeinfo(stack()[0][0]), units='arcsec')
+    wfo.loop_collection(opx.check_sampling, PASSVALUE['iter'], "focal plane",
+                        getframeinfo(stack()[0][0]), units='rad')
 
     # if sp.verbose:
-    print(f"Finished datacube at timestep = {PASSVALUE['iter']}")
+    print(f"Finished simulation timestep = {PASSVALUE['iter']}")
 
     return cpx_planes, sampling
 

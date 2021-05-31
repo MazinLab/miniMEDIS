@@ -7,10 +7,6 @@ mostly code copied from the original MEDIS from Rupert
 Generally, the optical prescription will call the deformable_mirror function, which will compile all information and
 run sequentially all functions related to creating the adaptive optic correction (main AO functionality, relating to
 atmospheric and common-path aberrations) as well as using or not CDI probes, DM corrections or errors, etc
-
-TODO
-    Add astrogrid pattern functionality from MEDIS0
-
 """
 
 import numpy as np
@@ -71,11 +67,13 @@ def deformable_mirror(wf, WFS_map, iter, previous_output=None, apodize=False, pl
 
     # DM Coordinates
     nact_across_pupil = nact - 2  # number of full DM actuators across pupil (oversizing DM extent)
-    dm_xc = (nact / 2)   # The location of the optical axis (center of the wavefront) on the DM in
-    dm_yc = (nact / 2)   # actuator units. First actuator is centered on (0.0, 0.0). The 0.5 is a
-    #  parameter introduced/tuned by Rupert to remove weird errors (address this).
-    # KD verified this needs to be here or else suffer weird errors 9/19
-    # TODO address/remove the 0.5 in DM x,y coordinates
+    if not tp.dm_offset:
+        dm_xc = (nact / 2)   # The location of the optical axis (center of the wavefront) on the DM in
+        dm_yc = (nact / 2)   # actuator units. First actuator is centered on (0.0, 0.0).
+    else:
+        dm_xc = (nact / 2) + 0.5  # The 0.5 offsets the center DM coordinates to make even-sided DMs have a central
+        dm_yc = (nact / 2) + 0.5  # pixel or to have odd-sided DMs have cully centered DMs
+
 
     ############################
     # Creating DM Surface Map

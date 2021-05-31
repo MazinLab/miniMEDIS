@@ -196,6 +196,7 @@ class Telescope_params:
         # AO System Settings
         self.use_ao = True  # if False, and DM returns an idealized 'flat'
         self.ao_act = 60  # number of actuators on the DM on one axis (proper only models nxn square DMs)
+        self.dm_offset = False  # shifts DM center by 1/2 pixel to allow for inter pixel centering of DM
         self.piston_error = False  # flag for allowing error on DM surface shape
         self.fit_dm = True  # flag to use DM surface fitting (see proper manual pg 52, the FIT switch)
         self.satelite_speck = {'apply': False, 'phase': np.pi / 5., 'amp': 12e-9, 'xloc': 12, 'yloc': 12}

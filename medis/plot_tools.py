@@ -11,6 +11,7 @@ import matplotlib.ticker as ticker
 import matplotlib.gridspec as gridspec
 from mpl_toolkits import axes_grid1
 from mpl_toolkits.axes_grid1 import ImageGrid
+from matplotlib.collections import LineCollection
 import warnings
 
 from medis.params import tp, sp, ap
@@ -29,7 +30,12 @@ rcParams['font.family'] = 'DejaVu Sans'
 # rcParams['mathtext.rm'] = 'Bitstream Vera Sans'
 # rcParams['mathtext.bf'] = 'Bitstream Vera Sans:bold'
 
-
+######################################################################################
+# Preset Plots
+######################################################################################
+###########################
+# Single White Light Image
+###########################
 def quick2D(image, dx=None, title=None, logZ=False, vlim=(None,None),
             colormap='YlGnBu_r', zlabel='Intensity', show=True):
     """
@@ -98,7 +104,9 @@ def quick2D(image, dx=None, title=None, logZ=False, vlim=(None,None),
     if show:
         plt.show(block=False)
 
-
+###############################
+# Spectra from multi-axis data
+###############################
 def grid(fields, title='body spectra', logZ=False, show=True, nstd=1, vlim=(None, None), cmap='inferno'):
     """
     General purpose plotter for multi-dimensional input tensors from 2D up to 6D. The tensor will be converted to 4D
@@ -168,7 +176,9 @@ def grid(fields, title='body spectra', logZ=False, show=True, nstd=1, vlim=(None
     if show:
         plt.show(block=True)
 
-
+#####################################
+# Spectral Plot from Spectral Cube
+#####################################
 def view_spectra(datacube, title=None, show=True, logZ=False, use_axis=True, vlim=(None,None), subplt_cols=3,
                   dx=None):
     """
@@ -255,9 +265,11 @@ def view_spectra(datacube, title=None, show=True, logZ=False, use_axis=True, vli
     if show is True:
         plt.show(block=False)
 
-
+################################
+# Timeseries from Temporal Cube
+################################
 def view_timeseries(img_tseries, cdi, title=None,  logZ=False, vlim =(None,None),
-                    dx=None, subplt_cols=3, box=False):
+                    dx=None, subplt_cols=3, box={'use':False, 'threshold':1e-7}):
     """
     view white light images in the timeseries
 
@@ -319,21 +331,18 @@ def view_timeseries(img_tseries, cdi, title=None,  logZ=False, vlim =(None,None)
                 clabel = "Normalized Intensity"
 
             # XY axis Labels
-            tic_spacing, tic_labels, xylabel = scale_lD(dx, tp.fn_fp, sp.maskd_size)
+            tic_spacing, tic_labels, xylabel = scale_lD(dx, tp.fn_fp)
             ax.set_xticks(tic_spacing)
             ax.set_xticklabels(tic_labels)
             ax.set_yticks(tic_spacing)
             ax.set_yticklabels(tic_labels)
             ax.set_xlabel(xylabel)
 
-            if box:
-                from matplotlib.patches import Rectangle
+            if box['use']:
                 from medis.CDI import get_fp_mask
-                _, _, _, irng, jrng = get_fp_mask(cdi, thresh=1e-6)
-                rect = Rectangle((jrng[0], irng[0]), jrng[-1]-jrng[0], irng[-1] - irng[0],
-                                 linewidth=1, edgecolor='r', facecolor='none')
-                # Add the patch to the Axes
-                ax.add_patch(rect)
+                fp_mask, edges, _, _, _, _ = get_fp_mask(cdi, thresh=box['threshold'])
+                cl = LineCollection(edges, colors='r')
+                ax.add_collection(cl)
 
         warnings.simplefilter("ignore", category=UserWarning)
         cbar_ax = fig.add_axes([0.86, 0.1, 0.04, 0.8])  # Add axes for colorbar @ position [left,bottom,width,height]
@@ -341,7 +350,9 @@ def view_timeseries(img_tseries, cdi, title=None,  logZ=False, vlim =(None,None)
         cb.set_label(clabel, fontsize=14)
         cb.ax.tick_params(labelsize=10)
 
-
+########################################################################
+# White Light Image at Different Optical Planes of Telescope Simulator
+########################################################################
 def plot_planes(cpx_seq, title=None, logZ=[False], use_axis=True, vlim=[None, None], subplt_cols=3,
                  dx=None, first=False):
     """
@@ -413,10 +424,14 @@ def plot_planes(cpx_seq, title=None, logZ=[False], use_axis=True, vlim=[None, No
             plane = opx.extract_center(plane, new_size=sp.grid_size*sp.beam_ratio+6)  # zoom in on DM
             logZ[p] = False
             vlim[p] = [-np.pi, np.pi]
-            phs = " phase"
+            phs = ' phase'
+        elif plot_plane == "SubaruPupil":
+            plane = np.sum(opx.cpx_to_intensity(plane[f]), axis=(0, 1))
+            plane = opx.extract_center(plane, new_size=sp.grid_size*sp.beam_ratio+6)
+            phs = ''
         else:
             plane = np.sum(opx.cpx_to_intensity(plane[f]), axis=(0, 1))
-            phs = ""
+            phs = ''
 
         ### Retreiving Data- Custom selection of plane ###
         # plot_plane = sp.save_list[w]
@@ -430,7 +445,7 @@ def plot_planes(cpx_seq, title=None, logZ=[False], use_axis=True, vlim=[None, No
             if dx[p, 0] < 1e-5:
                 # dx[p, :] *= 1e6  # [convert to um]
                 # axlabel = 'um'
-                tic_spacing, tic_labels, axlabel = scale_lD(dx[p,:], tp.fn_fp)  # Assumes that this is the focal plane!
+                tic_spacing, tic_labels, axlabel = scale_lD(dx[p,:], tp.fn_fp,size=plane.shape[0])  # Assumes that this is the focal plane!
             else:
                 if dx[p, 0] < 1e-3:
                     dx[p, :] *= 1e3  # [convert to mm]
@@ -483,6 +498,9 @@ def plot_planes(cpx_seq, title=None, logZ=[False], use_axis=True, vlim=[None, No
 
     # plt.show(block=True)
 
+##########################################################
+# Plot Functions
+##########################################################
 
 def add_colorbar(im, aspect=20, pad_fraction=0.5, **kwargs):
     """Add a vertical color bar to an image plot."""
@@ -495,7 +513,7 @@ def add_colorbar(im, aspect=20, pad_fraction=0.5, **kwargs):
     return im.axes.figure.colorbar(im, cax=cax, **kwargs)
 
 
-def scale_lD(samp, fn):
+def scale_lD(samp, fn, size=sp.maskd_size):
     """
     scales the focal plane into lambda/D units. Can use proper.prop_get_fratio to get the f_ratio that proper calculates
     at the focal plane. First convert the sampling in m/pix to rad/pix, then scale by the center wavelength lambda/D
@@ -520,12 +538,13 @@ def scale_lD(samp, fn):
     cw = wvls[cent]  # center wavelength
     res = cw / tp.entrance_d
 
-    tic_spacing = np.linspace(0, sp.maskd_size, 5)  # 5 (number of ticks) is set by hand, arbitrarily chosen
-    tic_labels = np.round(np.linspace(-rad_scale * sp.maskd_size / 2 , rad_scale * sp.maskd_size / 2 , 5)/res)  # nsteps must be same as tic_spacing
+    tic_spacing = np.linspace(0, size, 5)  # 5 (number of ticks) is set by hand, arbitrarily chosen
+    tic_labels = np.round(np.linspace(-rad_scale * size / 2 , rad_scale * size / 2 , 5)/res)  # nsteps must be same as tic_spacing
     tic_spacing[0] = tic_spacing[0] + 1  # hack for edge effects
     tic_spacing[-1] = tic_spacing[-1] - 1  # hack for edge effects
 
     axlabel = (r'$\lambda$' + f'/D')
 
     return tic_spacing, tic_labels, axlabel
+
 
